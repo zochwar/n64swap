@@ -3,10 +3,10 @@
 A slightly over-engineered Nintendo 64 Byte Swapper
 
 ## Usage
-n64swap <filename> [outputfile]
+n64swap \<filename\> [outputfile]
 
-The simplest usage is `n64swap file.v64`, this will convert your file to a Big-Endian (.z64) rom
-You can optionally add the output filename as the second argument
+The simplest usage is `n64swap file.v64`, this will convert your file to a Big-Endian (.z64) rom.\
+You can optionally add the output filename as the second argument.
 
 There are also some option flags available
 * -r, --romtype <ROMTYPE>
@@ -23,8 +23,8 @@ There are also some option flags available
     * Print version
 
 ## Dependencies
-This program is written in [Rust](https://www.rust-lang.org/)
+This program is written in [Rust](https://www.rust-lang.org/)\
 [Clap](https://github.com/clap-rs/clap) is used to parse the commandline, cargo will add this automatically
 
 ## Building
-There's nothing fancy going on, `cargo build` should work
+There's nothing fancy going on, `cargo build --release` should work
