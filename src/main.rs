@@ -32,18 +32,18 @@ impl fmt::Display for RomType {
 
 impl RomType {
     fn get_file_ext(&self) -> &str {
-        match self {
-            &RomType::BigEndian => ".z64",
-            &RomType::ByteSwap => ".v64",
-            &RomType::LittleEndian => ".n64",
+        match *self {
+            RomType::BigEndian => ".z64",
+            RomType::ByteSwap => ".v64",
+            RomType::LittleEndian => ".n64",
         }
     }
 
     fn get_header_bytes(&self) -> &[u8; 4] {
-        match self {
-            &RomType::BigEndian => &BIG_ENDIAN,
-            &RomType::ByteSwap => &BYTE_SWAP,
-            &RomType::LittleEndian => &LITTLE_ENDIAN,
+        match *self {
+            RomType::BigEndian => &BIG_ENDIAN,
+            RomType::ByteSwap => &BYTE_SWAP,
+            RomType::LittleEndian => &LITTLE_ENDIAN,
         }
     }
 }
@@ -58,16 +58,16 @@ fn guess_type(ext: &str) -> Option<RomType> {
 }
 
 fn identify_header(bytes: &[u8; 4]) -> Option<RomType> {
-    match bytes {
-        &BIG_ENDIAN => Some(RomType::BigEndian),
-        &BYTE_SWAP => Some(RomType::ByteSwap),
-        &LITTLE_ENDIAN => Some(RomType::LittleEndian),
+    match *bytes {
+        BIG_ENDIAN => Some(RomType::BigEndian),
+        BYTE_SWAP => Some(RomType::ByteSwap),
+        LITTLE_ENDIAN => Some(RomType::LittleEndian),
         _ => None,
     }
 }
 
-fn detect_ext(filename: &String) -> Option<&str> {
-    if let Some(idx) = filename.rfind(".") {
+fn detect_ext(filename: &str) -> Option<&str> {
+    if let Some(idx) = filename.rfind('.') {
         filename.get(idx..)
     } else {
         None
@@ -142,10 +142,11 @@ fn main() {
     }
 
     // Output file
-    let outfiletype = args.romtype.unwrap_or_else(|| { // If defined on the commandline, use that
-        args.destination_filename.as_ref() // Otherwise borrow the destination filename
-            .map(detect_ext).flatten() // Detect the extension
-            .map(guess_type).flatten() // Identify the type based on extension
+    let outfiletype = args.romtype.unwrap_or_else(|| { // If specified, use that
+        args.destination_filename
+            .as_deref() // Otherwise borrow the destination filename
+            .and_then(detect_ext) // Detect the extension
+            .and_then(guess_type) // Identify the type based on extension
             .unwrap_or(RomType::BigEndian) // Or default to BigEndian
     });
 
@@ -154,8 +155,7 @@ fn main() {
         exit(0);
     }
 
-    let outfilename = args.destination_filename.unwrap_or_else(|| {
-        // If defined on the commandline, use that
+    let outfilename = args.destination_filename.unwrap_or_else(|| { // If specified, use that
         let mut name = args.filename.clone(); // Otherwise, copy the input filename
         let len = name.len(); // Get the filename length
         if name.chars().nth(len - 4) == Some('.') { // Check if there's a 3-letter extension
@@ -173,7 +173,6 @@ fn main() {
         exit(1);
     }
 
-    //    let Ok(outfile) = File::options()
     let outfile = match File::options()
         .write(true)
         .create_new(!args.force)
@@ -194,17 +193,12 @@ fn main() {
         exit(1);
     };
 
-    loop {
-        match buf.read_exact(&mut bytes) {
-            Ok(_) => {
-                swapper(&mut bytes, filetype, outfiletype);
+    while buf.read_exact(&mut bytes).is_ok() {
+        swapper(&mut bytes, filetype, outfiletype);
 
-                let Ok(_) = outbuf.write_all(&bytes) else {
-                    println!("Error during output!");
-                    exit(1);
-                };
-            }
-            _ => break,
-        }
+        let Ok(_) = outbuf.write_all(&bytes) else {
+            println!("Error during output!");
+            exit(1);
+        };
     }
 }
